@@ -1,0 +1,164 @@
+---
+title: ChessMate
+author: Brian Kwon, Corwin Dark
+date: 2025-04-29
+format: 
+    html:
+        embed-resources: true
+---
+
+# ChessMate
+
+## Abstract
+
+The capability of Large Language Models (LLMs) to play Chess has gathered attention in recent years, due to the implications that these models can understand complex structures and make reasoned decisions in this environment. To explore the capability of LLMs in this area, we developed ChessMate, a generative AI application that is designed to provide multifaceted utility to help new players learn Chess. The application combines basic LLM functionality with retrieval-augmented-generation (RAG) of tutorial texts as well as game states, tool usage for searching the internet and validating moves, a fine tuned model for move suggestion, and the ability to imitate the playstyle of famous chess grandmasters.
+
+ChessMate is built as a Streamlit web application, which allows users to play Chess against both an LLM and a traditional chess engine (stockfish). In addition to moves on the board, the application features a text interface which can be used for: RAG over a database of 500,000 grandmaster moves to look for similar situations, get move suggestions from a foundation model fine tuned on grandmaster games, review thousands of articles from Chess.com on basic chess principles, and search Google and Wikipedia up-to-date information on chess topics.
+
+Overall, this project found that LLMs can be augmented with either fine tuning or knowledge bases that enable them to perform near engine-level in the early game of Chess matches. However, LLMs begin to suffer in the middle stages of Chess games, as they face previously unseen circumstances.
+
+## Introduction
+
+This project investigates the extent to which LLMs can play and explain chess when integrated with retrieval systems, tool usage, and fine-tuned neural architectures. We were motivated by research showing that LLMs can learn to play chess from string-based board representations, with performance nearing that of mid-tier engines.[^1] Additionally, multimodal LLMs have shown strong promise in other gaming domains such as Hades, further validating the use of language-based systems in complex game environments.[^2] However, the challenge remains in representing chess states in a way that LLMs can interpret, and in ensuring consistency, accuracy, and reasoning when those models make or explain moves.
+
+To address this, we developed ChessMate, a generative AI assistant deployed as a Streamlit app. The assistant combines gameplay with instructional interaction using retrieval-augmented generation (RAG), a fine-tuned LLM, and a supervisor agent that delegates tasks to specialized tools. ChessMate accepts Forsyth-Edwards Notation (FEN) inputs, recommends moves based on fine-tuned models, retrieves similar grandmaster games, and explains chess concepts using educational content from Chess.com and real-time web tools like Google Search and Wikipedia.
+
+Our guiding question was: Can a generative AI application provide both effective chess gameplay and meaningful educational support? We explored that question through the development steps outlined below.
+
+## Data Source and Preparation
+
+Most of our data came from chess.com. We used their public API[^3] to get PGN files from archives of 5 different grandmasters and then preprocess them into the format we need. Also we used requests and beautifulsoup to get 1500 articles (6 categories, 10 pages per category, 25 articles per page) from chess.com for our chatbot as well. For our finetuned model, we used a separate PGN file downloaded from [PGN Mentor](https://www.pgnmentor.com). For finetuning, the move history from the PGN was used as an input and the predicted output would be a move.
+
+![finetuning](./imgs/finetuning.png)
+
+## Database
+
+Initially we tried to used FAISS through langchain as we started with small subset of the data. As we prepare and process more data, we noticed FAISS is not a great option for one of our agent and migrated to Pinecone that is hosted in cloud. For the articles, we still used FAISS as it wasn't too large to save in the repo.
+
+## Models and Technologies Used
+
+Two primary language models were used: pre-trained LLaMA models and fine-tuned variants trained on grandmaster data. Specifically, we experimented with LLaMA 1B and 8B models hosted via Hugging Face and executed locally in a GPU-backed Amazon SageMaker instance. 
+
+For retrieval-based augmentation, we implemented FAISS vector databases to store and search embeddings of over 500,000 grandmaster moves and 1,500 educational articles from Chess.com. These vector stores enabled efficient similarity search and context injection during both gameplay and tutorial interactions.
+
+Additionally, the open-source **Stockfish** engine was integrated to validate moves and provide centipawn score evaluations, serving as a baseline for benchmarking the LLM's decision-making. The application relied on LangChain-style tool-using agents, orchestrated through a custom-built supervisor agent that coordinated between tools like Wikipedia search, Google search, vector retrieval, and fine-tuned model inference.
+
+Technologies included:
+
+* Python for backend logic.
+* Streamlit for the user interface.
+* Amazon SageMaker and Bedrock for model hosting and inference.
+* Pinecone and FAISS for fast approximate nearest-neighbor retrieval.
+* Hugging Face for model training and deployment.
+
+## Agent 
+
+#### Gameplay Agent
+
+The main goal of the gameplay agent is to recommend a move based on the user query. So it is very important to preprocess the data so that the LLM can use retrieved data well. There are two types of way to represent a chess game. Portable Game Notation (PGN) and Forsyth-Edwards Notation (FEN). PGN comes as a single file that can contain multiple chess games inside. The format of game inside of PGN looks like the following:
+
+![https://thechessworld.com/articles/general-information/portable-chess-game-notation-pgn-complete-guide/](./imgs/PGN.webp)
+
+On the other hand, FEN only represent a current board state without any move history. For example, '8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50' represent the following specific board.
+
+![https://www.chess.com/terms/fen-chess](./imgs/fen.png)
+
+Each section in between slash corresponds to each horizontal line on the board with proper representation of pieces’ location from the right side of the board. The FEN string also contains turn color, castling rights, En passant target square, and move numbers.
+
+We gathered these PGN and FEN from chess.com using their API[^3]. Then we parse PGN move history into FEN and move pairs. 
+
+![FEN & Move Pair](./imgs/fen_move_pair.png)
+
+As you can see on the image above, we paired a FEN string with a move made on that board state. For example, the first FEN string on the table in the image is the initial board state and white made e4 move. This move creates a new FEN string on the second row on the table and black made e5 move in this time. It keeps going until the game ends.
+
+We did this process for all 5 grandmasters, which are Magnus Carlsen, Hikaru Nakamura, Gukesh
+Dommaraju, Arjun Erigaisi, and Fabiano Caruana. We chose those 5 because they are the top 5 players from the chess.com ranking. First we gathered all their games from PGN files of archives using chess.com API, convert them into FEN and move pairs, and randomly select 100,000 pairs. We had total of 500,000 pairs, which then saved to Pinecone vectorstore using `all-MiniLM-L6-v2` embedding model from HuggingFace. By doing so, our agent can do similarity search between FEN from the document and user query's FEN. Then we get moves from the retrieved documents. 
+
+This RAG technique is then incorporated with our agent. The agent is created with `claude-3-5-haiku` model and has 6 tools: extract_fen, is_gradmaster_specific, query_knowledge_base, get_moves_for_white, evaluate_move, and validate_move. The extract_fen tool parses the FEN string from the user query and the is_gradmaster_specific tool checks whether the user query is asking specific grandmaster style move. Having these information, the agent retrieves relevant documents for the moves. Those moves then evaluated by Stockfish and validate whether it is a legal move or not. The get_moves_for_white tool is a special tool that our agent has. This is getting a move from our finetuned LLM, which will explained later on. The predicted move from the finetuned LLM will be also considered as one of the possible moves to recommend.
+
+#### Finetuning
+
+Fine-tuning was a central part of our exploration into improving LLM performance in chess gameplay. Two LLaMA-based models (1B and 8B parameters) were fine-tuned on a dataset comprising 20,000 structured training observations extracted from Magnus Carlsen’s PGN (Portable Game Notation) files. Each turn was converted into a JSON-like observation pairing a FEN string with the associated move, mimicking natural language prompts for model training.
+
+The models were fine-tuned using Hugging Face Transformers on GPU-enabled Amazon SageMaker instances. While both models improved qualitatively over baseline LLaMA behavior—particularly in opening theory and common positions—the 8B model showed a lower training loss. However, both models plateaued after a few epochs, suggesting limitations in generalization, likely due to data sparsity in middle and endgames. 
+
+![Metrics from finetuning](./imgs/ft_perf.png)
+
+#### Tutorial Agent
+
+The Tutorial Agent is designed to respond to natural language questions such as: “What is the best defense against the Queen’s Gambit?” It does not rely on the board state FEN data, but instead provides factual, context-rich responses using a combination of tools and retrieval sources.
+
+Framework and Tools Used
+LangChain-style agent design: The Tutorial Agent is built using a tool-using framework where the agent chooses from a set of tools based on user intent.
+
+Tools Available:
+- Tavily Web Search and the Wikipedia loader package were used to bring in realtime information from the web.
+- The FAISS database of Chess.com educational articles spanned six curated categories (For Beginners, Strategy, Tactics, Opening Theory, Middlegame, Endgames)
+
+These tools are queried depending on the nature of the user's question. For example, a strategy question might trigger retrieval from the FAISS vector store. While a news question, (e.g., "Who won the 2024 Candidates Tournament?") triggers a Tavily search. In practice, the model could describe Chess tournaments which happened within a week before the date of testing or less, suggesting it incorporated the information it learned from these tools. This could allow for directing new chess users to helpful websites and resources that would facilitate their growth in the game, as seen in the example below:
+
+![Search example](./imgs/search.png)
+
+#### Supervisor Agent
+
+To have streamlined chatbot, we created a supervisor agent that can route user's query to appropriate agent. 
+
+## Responsible AI Considerations
+
+We experimented with several methods to ensure responsible AI:
+We ensured all LLMs were given system prompts that focused their responses on Chess, as opposed to allowing wide-ranging feedback. In retrospect, we could have increased security further by explicitly requiring the LLMs to say “I cannot respond” when asked about questions outside of chess.
+We attempted to use Bedrock’s built-in guardrail functionality, where you can create a guardrail with a contentPolicyConfig, but we did not appear to have access to this on our Educate accounts.
+We also investigated using stopwords that would cause ChessMate not to answer the question, such as ‘cheat,’ ‘hack,’ ‘steal’ etc. This function was easy to implement, but ultimately we did not feel it provided much of a defense against ill-intended use.
+
+## Results, Findings, & Insights
+
+We spend most of our time to figure out the best way to represent the chess game to the LLM. Instead of FEN and move pair, we tried a couple other ways. Initially we used PGN move history itself to get a move. So user would give PGN move history and our agent recommends the next move. The second way we tried was converting FEN string to natural language. For example, the following FEN string 
+
+> "rnbqkbnr/ppp2ppp/4p3/3p4/3P4/4P3/PPP2PPP/RNBQKBNR w KQkq d6 0 3"
+
+will be converted into 
+
+> "White to move. White can castle kingside. White can castle queenside. Black can castle kingside. Black can castle queenside. En passant capture available at d6. White has: 8 pawns on a2, b2, c2, d4, e3, f2, g2, h2; 2 knights on b1, g1; 2 bishops on c1, f1; 2 rooks on a1, h1; 1 queen on d1; 1 king on e1. Black has: 8 pawns on a7, b7, c7, d5, e6, f7, g7, h7; 2 knights on b8, g8; 2 bishops on c8, f8; 2 rooks on a8, h8; 1 queen on d8; 1 king on e8."
+
+This conversion will be applied to user query's FEN as well and then perform a similarity search. Both methods didn’t work well compared to our FEN and move pair method.
+
+Once we had settled on how to represent Chess matches, getting the LLM to respond with valid moves was less of a challenge.
+We found that ChessMate was usually able to offer cogent, legal moves throughout most parts of a Chess game. Consider the following example: 
+
+![Move suggestion comparison](./imgs/sample_moves.png)
+
+Early into the match, the knowledgebase can produce either the move (A) which is to advance the pawn twice, if prompted to match Hikaru's style, or the move (B) to match Carlson's style. The finetuned model which was based on Magnus Carlson's moves agrees with the B move in this cases. As shown here, the different tools do not always agree, however in the early game it is likely that the tools will all produce valid move alternatives for the supervisor to consider.
+
+Beyond simply playing legal moves, we tested a few different metrics on the RAG functionality and Chess acumen of the agent:
+
+![Evaluation](./imgs/evaluation.png)
+
+Because our gameplay agent is recommending a move, we thought it is better to have a specific metric to evaluate the response. To do this, we created a random 30 FEN strings synthetically and asked both our agent and Stockfish to create a move. We loop though those strings multiple times to get a pattern of our agent. Our gameplay agent was able to create a same move as stockfish in 50% of time in early game but that decreased to 20% as the game goes by. We also calculated the centipawn score. The centipawn score is a measurement to calculate how much piece advantages the player has compared to the opponent. Our agent did much better on mid game compared to stockfish but it didn’t do well on early and end games. Lastly we also evaluated faithfulness of general tutorial agent responses using RAGAS. we got 0.93 which means our rag agent has great consistency. 
+
+## Future works & Limitations
+
+Even though our agent did great in terms of recommending decent moves, it noticed we needed much more pairs to get more robust recommendations. This can be resolved by having different representation of chess or other approaches like using DAG. Regarding the app, our agent was very slow so finding a better agentic architecture rather than langchain or having a more powerful LLM would be better. Also faster GUI than streamlit will be a huge benefit for the future as well. There are other enhancements that the app could have. For example, more generalized chatbot, predicting ELO score or win rates, comment on user’s move, and store memories. Finally, having more evaluation metrics will be very helpful to create a better chatbot in the future.
+
+## Demo
+
+{{< video https://youtu.be/iROwmb5AMWw >}}
+
+
+## Conclusion
+
+Overall, the academic side of improving LLM performance on Chess tasks was difficult. Foundation models with the proper tools (such as the knowledgebase) were able to play at an acceptable level, somewhere near an intermediate player, until the late game of a Chess match. While these results were encouraging, LLMs did not perform well on ‘unseen’ situations, suggesting poor generalization outside of instances used in training or in the knowledgebase.
+
+The application side, however, was smooth to put together, and showed us the maturity of the ecosystem surrounding GenAI applications. Our supervisor agent directed tasks intelligently and agents used tools effectively with minimal tweaking of prompt guidance necessary. Ecosystem tools were easy to use and combine in different ways: 
+- Unsloth allowed for easy finetuning once the proper data structure was identified, while Hugging Face made it easy to store and serve the trained models
+- Pinecone allowed for a faster vectorstore than FAISS
+- Bedrock allowed for mixing and matching foundation models as needed for different use-cases and cost levels
+
+Ultimately, superior access to sample games, and improved finetuning, might increase ChessMate's ability to win against Chess engines. But the utility of an LLM-based Chess tool is likely to remain its capability for clear explanation of the complexities of Chess for new players, and in this area we believe this project is a small start.
+
+## Other References
+
+[1] dynomight, “Something weird is happening with LLMs and chess,” DYNOMIGHT. Accessed: Apr. 28, 2025. [Online]. Available: https://dynomight.net/chess/
+
+[^1]: Y. Zhang, X. Han, H. Li, K. Chen, and S. Lin, “Complete Chess Games Enable LLM Become A Chess Master,” Jan. 30, 2025, arXiv: arXiv:2501.17186. doi: 10.48550/arXiv.2501.17186.
+[^2]: Y. Lin and R. Ganesh, “Developing a Multimodal LLM-Based Game Tutor for Hades”.
+[^3]: B. Curtis (bcurtis), “Published-Data API,” Chess.com. Accessed: Apr. 28, 2025. [Online]. Available: https://www.chess.com/announcements/view/published-data-api

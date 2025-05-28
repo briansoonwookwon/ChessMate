@@ -1,0 +1,39 @@
+[project]
+name = "ChessMate"
+version = "0.1.0"
+description = "A chat bot for Chess"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "accelerate>=1.6.0",
+    "boto3==1.35.87",
+    "bs4>=0.0.2",
+    "chess>=1.11.1",
+    "faiss-cpu==1.9.0",
+    "fireducks>=1.1.7",
+    "hf-xet>=1.0.5",
+    "huggingface-hub>=0.27.1",
+    "ipykernel>=6.29.5",
+    "jupyter-client>=8.6.3",
+    "langchain==0.3.13",
+    "langchain-aws>=0.2.10",
+    "langchain-community>=0.3.13",
+    "langchain-huggingface>=0.1.2",
+    "langchain-pinecone>=0.2.5",
+    "langchainhub>=0.1.21",
+    "langgraph>=0.3.18",
+    "litellm==1.55.12",
+    "llama-index==0.12.8",
+    "pinecone>=6.0.2",
+    "pyarrow>=18.1.0",
+    "pypdf>=5.1.0",
+    "pyspark>=3.5.4",
+    "ragas>=0.2.15",
+    "rank-bm25>=0.2.2",
+    "s3fs>=2025.2.0",
+    "sentence-transformers>=3.4.1",
+    "streamlit>=1.42.2",
+    "unstructured>=0.14.8",
+    "wikipedia>=1.4.0",
+    "zmq>=0.0.0",
+]

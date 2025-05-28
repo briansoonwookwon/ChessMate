@@ -1,0 +1,38 @@
+{
+  "early_game": [
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "rnbqkbnr/pppp1ppp/8/4p3/3P4/8/PPP2PPP/RNBQKBNR b KQkq - 0 2",
+    "r1bqkbnr/pppppppp/2n5/8/2B5/5N2/PPPPPPPP/RNBQK2R b KQkq - 2 3",
+    "r1bqk2r/ppppbppp/2n2n2/4p3/2B1P3/2NP1N2/PPP2PPP/R1BQK2R w KQkq - 5 5",
+    "rnbqkb1r/pppp1ppp/5n2/4p3/2B1P3/8/PPPP1PPP/RNBQK1NR w KQkq - 2 3",
+    "r1bqkbnr/pp1p1ppp/2n1p3/2p5/4P3/2N2N2/PPPP1PPP/R1BQKB1R w KQkq - 0 5",
+    "r1bqk2r/pp1nbppp/2n1p3/2ppP3/3P4/2N2N2/PPP2PPP/R1BQKB1R w KQkq - 4 6",
+    "rnbqkbnr/ppp2ppp/3p4/4p3/4P3/2NP1N2/PPP2PPP/R1BQKB1R b KQkq - 0 4",
+    "r1bqkb1r/pppp1ppp/2n2n2/4p3/3PP3/2N2N2/PPP2PPP/R1BQKB1R b KQkq - 2 4",
+    "r1bqkb1r/pppp1ppp/2n2n2/4p3/3PP3/2P2N2/PP3PPP/RNBQKB1R b KQkq - 0 4"
+  ],
+  "mid_game": [
+    "r1bq1rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 w - - 8 7",
+    "r2q1rk1/pp2bppp/2n1pn2/2pp4/3P1B2/2P1PN2/PP1N1PPP/R2QKB1R w KQ - 6 8",
+    "2rq1rk1/pp2bppp/2n1pn2/3p4/2pP4/2N1PN2/PPQ2PPP/R1B2RK1 b - - 9 10",
+    "2kr1b1r/pppbqppp/2np1n2/8/2BPP3/2N2N2/PPP2PPP/R1BQ1RK1 w - - 6 8",
+    "r1bq1rk1/pp1n1ppp/2pbpn2/3p4/3P4/2NBPN2/PP3PPP/R1BQ1RK1 w - - 7 7",
+    "r2q1rk1/1b2bppp/p1n1pn2/1pp5/3P4/2N1PN2/PPQ1BPPP/2KR1B1R w - - 11 10",
+    "r4rk1/1ppq1pbp/2npb1p1/p3p3/4P3/1BN2N1P/PPP1QPP1/2KR3R w - - 10 11",
+    "2rq1rk1/1b2bppp/p1n1pn2/1pp5/3P4/1BN1PN2/PPQ1BPPP/2KR3R w - - 12 11",
+    "2rq1rk1/1b1nbppp/p3pn2/1pp5/3P4/1BN1PN2/PPQ1BPPP/2KR3R w - - 11 10",
+    "2rq1rk1/1b1nbppp/p3pn2/1pp5/3P4/P1N1PN2/1PQ1BPPP/2KR3R w - - 11 11"
+  ],
+  "end_game": [
+    "8/5pk1/6p1/5p2/8/6P1/5P1K/8 w - - 40 30",
+    "8/5k2/8/2p5/2P5/8/5K2/8 w - - 44 35",
+    "6k1/5pp1/5n1p/8/8/5PPP/6K1/8 w - - 45 35",
+    "8/5pk1/4p1p1/8/1KP5/8/8/8 b - - 48 40",
+    "8/8/6k1/5p2/5P2/6K1/8/8 w - - 50 45",
+    "6k1/5ppp/8/8/8/5PPP/6K1/8 w - - 40 35",
+    "8/5kp1/6p1/8/4K3/8/8/8 b - - 60 50",
+    "8/8/8/6k1/5p2/6P1/5K2/8 w - - 70 60",
+    "6k1/5pp1/8/8/8/5PP1/6K1/8 b - - 42 38",
+    "8/5k2/5p2/5P2/8/5K2/8/8 w - - 55 48"
+  ]
+}
